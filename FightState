@@ -1,0 +1,187 @@
+import os
+import sys
+import pygame as pg
+import math
+
+
+# Game states
+STATE_MENU = 0
+STATE_PLAYING = 1
+STATE_PAUSED = 2
+WIDTH = 1920
+HEIGHT = 1000
+Z = WIDTH, HEIGHT
+
+pg.init()
+
+class StateStack:
+    def __init__(self, app):
+        self.app = app
+        self.states = {0: "Menu", 1: "Playing", 2: "Paused"}
+        self.currentState = 0
+
+    def switchState(self):
+        self.currentState = (self.currentState + 1) % len(self.states)
+
+    def getCurrentState(self):
+        return self.states[self.currentState]
+
+class EventHandler:
+    def __init__(self) -> None:
+        EventHandler.events = pg.event.get()
+
+    def poll_events():
+        EventHandler.events = pg.event.get()
+
+    def keydown(key):
+        for event in EventHandler.events:
+            if event.type == pg.KEYDOWN:
+                if event.key == key:
+                    return True
+            return False
+
+    def clicked(leftright=1) -> bool:
+        for event in EventHandler.events:
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if event.button == leftright:
+                    return True
+        return False
+
+    def clicked_any() -> bool:
+        for event in EventHandler.events:
+            if event.type == pg.MOUSEBUTTONDOWN:
+                return True
+        return False
+
+EH=EventHandler()
+class Character:
+    ...
+
+P=Character()#["sprites"],(960,540))
+
+class Camera(pg.sprite.Group):
+    def __init__(self):
+        super().__init__()
+    
+    def draw(self, target, surf, dist=200):
+        offset = pg.math.Vector2()
+        screen_rect = surf.get_rect()
+        # If the player is within dist pixels of the edge, move the camera
+        if target.rect.centerx < screen_rect.centerx - dist:
+            offset.x = screen_rect.centerx - dist - target.rect.centerx
+        elif target.rect.centerx > screen_rect.centerx + dist:
+            offset.x = screen_rect.centerx + dist - target.rect.centerx
+
+        if target.rect.centery < screen_rect.centery - dist:
+            offset.y = screen_rect.centery - dist - target.rect.centery
+        elif target.rect.centery > screen_rect.centery + dist:
+            offset.y = screen_rect.centery + dist - target.rect.centery
+
+        for sprite in self.sprites():
+            sprite_offset = pg.math.Vector2()
+            sprite_offset.x = offset.x + sprite.rect.x
+            sprite_offset.y = offset.y + sprite.rect.y
+
+            surf.blit(sprite.image, sprite_offset)
+
+
+class Game:
+    def __init__(self):
+        self.state=StateStack(self)
+        self.state = STATE_MENU
+        self.SCREEN=pg.display.set_mode(Z)
+        self.selected_character = None
+        self.characters = ['Ren', 'Kyu', 'Lee-Conda', "Eun Hi", "Bagat", "Slanka", "yer mom"]
+        self.player1 = Character(["sprites"],100, 100)
+        self.player2 = Character(["sprites"],200, 200)
+        self.running=True
+
+    def select_character(self, character):
+        if character in self.characters:
+            self.selected_character = character
+            self.state = STATE_PLAYING
+
+    def check_collision(self, rect1, rect2):
+        return rect1.colliderect(rect2)
+            
+    def run(self):
+        while self.running:
+            P.HandleInput()
+            if self.state==STATE_PAUSED:
+                self.SCREEN.fill((255,0,0))
+            if self.state == STATE_MENU:
+                self.SCREEN.fill((0,0,255))
+                self.select_character(self.characters[0])
+            if self.state == STATE_PLAYING:
+                self.SCREEN.fill((0,255,0))
+                hits = pg.sprite.spritecollide(self.player1, [self.player2], False)
+                self.player1.update(hits)
+                hits = pg.sprite.spritecollide(self.player2, [self.player1], False)
+                self.player2.update(hits)
+                if self.player1.health <= 0:
+                    print('Player 2 wins!')
+                    break
+                elif self.player2.health <= 0:
+                    print('Player 1 wins!')
+                    break
+
+class Character(pg.sprite.Sprite):
+    def __init__(self, groups ,x=WIDTH//2, y=HEIGHT//2):
+        super().__init__(groups)
+        self.image = pg.Surface((50, 50))
+        self.image.fill((255, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+        self.health = 100
+        self.pos = [x, y]
+    
+    def HandleInput(self):
+        EH.poll_events()
+        events=EH.events
+        for event in events:
+            if event.type==pg.QUIT:
+                self.running=False
+            if event.type==pg.KEYDOWN:
+                if event.key:
+                    if event.key in KeysToActions:
+                        print(event.key)
+
+    def update(self, hits):
+        if hits:
+            self.health -= 10  # Decrease health by 10 if hit
+
+    def draw(self, surf):
+        surf.blit(self.image, self.pos)
+
+KeysToActions={
+pg.K_a:False,
+pg.K_b:False,
+pg.K_c:False,
+pg.K_d:False,
+pg.K_e:False,
+pg.K_f:False,
+pg.K_g:False,
+pg.K_h:False,
+pg.K_i:False,
+pg.K_j:False,
+pg.K_k:False,
+pg.K_l:False,
+pg.K_m:False,
+pg.K_n:False,
+pg.K_o:False,
+pg.K_p:False,
+pg.K_q:False,
+pg.K_r:False,
+pg.K_s:False,
+pg.K_t:False,
+pg.K_u:False,
+pg.K_v:False,
+pg.K_w:False,
+pg.K_x:False,
+pg.K_y:False,
+pg.K_z:False
+}
+
+if __name__ == '__main__':
+    game = Game()
+    game.run()
